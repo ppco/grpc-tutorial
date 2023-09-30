@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-api
+  namespace: grpc-tutorial
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rest-api
+  template:
+    metadata:
+      labels:
+        app: rest-api
+    spec:
+      containers:
+        - name: rest-api
+          image: ${image_uri}
+          env:
+          - name: ENV
+            value: "hoge"
+          ports:
+          - containerPort: 8888
+            name: rest-endpoint
