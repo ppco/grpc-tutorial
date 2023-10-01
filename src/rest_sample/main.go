@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
 	http.HandleFunc("/rest", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, World!")
+		now := time.Now().Format("2006-01-02 15:04:05")
+		log.Println("access!!")
+		fmt.Fprintf(w, "hello world! time:"+now)
 	})
 
 	port := ":8888"
