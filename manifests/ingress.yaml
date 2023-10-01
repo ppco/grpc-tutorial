@@ -28,3 +28,10 @@ spec:
       #       name: k8s-grpc-service
       #       port: 
       #         number: 8080
+      - path: /rest
+        pathType: Prefix
+        backend:
+          service:
+            name: rest-api-service
+            port:
+              number: 8888

@@ -419,3 +419,9 @@ module "rest_api_service" {
   yaml_body  = file("../manifests/rest-api/service.yaml")
   depends_on = [aws_eks_cluster.sample_eks_cluster]
 }
+
+module "ingress" {
+  source     = "./modules/eks"
+  yaml_body  = file("../manifests/ingress.yaml")
+  depends_on = [aws_eks_cluster.sample_eks_cluster]
+}
