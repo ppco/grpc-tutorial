@@ -73,10 +73,10 @@ resource "aws_route_table" "sample_public_route_table" {
   }
 
 }
-resource "aws_main_route_table_association" "sample_main_route_table" {
-  vpc_id         = aws_vpc.sample_vpc.id
-  route_table_id = aws_route_table.sample_public_route_table.id
-}
+# resource "aws_main_route_table_association" "sample_main_route_table" {
+#   vpc_id         = aws_vpc.sample_vpc.id
+#   route_table_id = aws_route_table.sample_public_route_table.id
+# }
 resource "aws_route_table_association" "sample_public_route_table_ass1" {
   subnet_id      = aws_subnet.sample_public_subnet1.id
   route_table_id = aws_route_table.sample_public_route_table.id
@@ -113,7 +113,7 @@ resource "aws_nat_gateway" "sample_nat_gw2" {
   depends_on    = [aws_internet_gateway.sample_igw]
 }
 
-resource "aws_route_table" "sample_private_route_table" {
+resource "aws_route_table" "sample_private_route_table1" {
   vpc_id = aws_vpc.sample_vpc.id
 
   route {
@@ -121,13 +121,23 @@ resource "aws_route_table" "sample_private_route_table" {
     nat_gateway_id = aws_nat_gateway.sample_nat_gw1.id
   }
 
+  tags = {
+    Name      = "${local.project}-private-route1"
+    terraform = true
+  }
+
+}
+
+resource "aws_route_table" "sample_private_route_table2" {
+  vpc_id = aws_vpc.sample_vpc.id
+
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.sample_nat_gw2.id
   }
 
   tags = {
-    Name      = "${local.project}-private-route"
+    Name      = "${local.project}-private-route2"
     terraform = true
   }
 
@@ -135,9 +145,9 @@ resource "aws_route_table" "sample_private_route_table" {
 
 resource "aws_route_table_association" "sample_private_route_table_ass1" {
   subnet_id      = aws_subnet.sample_private_subnet1.id
-  route_table_id = aws_route_table.sample_private_route_table.id
+  route_table_id = aws_route_table.sample_private_route_table1.id
 }
 resource "aws_route_table_association" "sample_private_route_table_ass2" {
   subnet_id      = aws_subnet.sample_private_subnet2.id
-  route_table_id = aws_route_table.sample_private_route_table.id
+  route_table_id = aws_route_table.sample_private_route_table2.id
 }

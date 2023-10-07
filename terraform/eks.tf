@@ -29,6 +29,10 @@ resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.eks_cluster_role.name
 }
+resource "aws_iam_role_policy_attachment" "AmazonEKSServicePolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+  role       = aws_iam_role.eks_cluster_role.name
+}
 # Optionally, enable Security Groups for Pods
 # Reference: https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html
 resource "aws_iam_role_policy_attachment" "AmazonEKSVPCResourceController" {
@@ -42,49 +46,92 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
 }
 
 
-# データプレーンにFargateを利用するための設定
-resource "aws_eks_fargate_profile" "kube_system" {
-  cluster_name           = aws_eks_cluster.sample_eks_cluster.name
-  fargate_profile_name   = "fargate-profile"
-  pod_execution_role_arn = aws_iam_role.kube_system.arn
-  subnet_ids             = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
-  selector {
-    namespace = "kube-system"
+# node group
+resource "aws_eks_node_group" "this" {
+  cluster_name    = aws_eks_cluster.sample_eks_cluster.name
+  node_group_name = "sample_node_group"
+  node_role_arn = aws_iam_role.eks_cluster_node_role.arn
+  subnet_ids = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
+  scaling_config {
+    desired_size = 1
+    max_size = 2
+    min_size = 1
   }
-  selector {
-    namespace = "grpc-tutorial"
-  }
-  depends_on = [
-    aws_iam_role_policy_attachment.kube-system-AmazonEKSFargatePodExecutionRolePolicy,
-    aws_eks_cluster.sample_eks_cluster,
-  ]
+  instance_types = ["t3.nano"]
+  depends_on = [ aws_eks_cluster.sample_eks_cluster ]
 }
-resource "aws_iam_role" "kube_system" {
-  name = "eks-fargate-profile-kube-system"
+
+resource "aws_iam_role" "eks_cluster_node_role" {
+  name = "eks-cluster-node-managed-role"
   assume_role_policy = jsonencode({
     Statement = [{
       Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
-        Service = "eks-fargate-pods.amazonaws.com"
+        Service = "ec2.amazonaws.com"
       }
     }]
     Version = "2012-10-17"
   })
 }
-resource "aws_iam_role_policy_attachment" "kube-system-AmazonEKSFargatePodExecutionRolePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
-  role       = aws_iam_role.kube_system.name
+resource "aws_iam_role_policy_attachment" "AmazonEKSWorkerNodePolicy" {
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    role       = aws_iam_role.eks_cluster_node_role.name
 }
 
-resource "aws_eks_addon" "sample_eks_addon" {
-  cluster_name                = aws_eks_cluster.sample_eks_cluster.name
-  addon_name                  = "coredns"
-  resolve_conflicts_on_create = "OVERWRITE"
-  configuration_values = jsonencode({
-    computeType = "fargate"
-  })
+resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    role       = aws_iam_role.eks_cluster_node_role.name
 }
+
+resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    role       = aws_iam_role.eks_cluster_node_role.name
+}
+
+# データプレーンにFargateを利用するための設定
+# resource "aws_eks_fargate_profile" "kube_system" {
+#   cluster_name           = aws_eks_cluster.sample_eks_cluster.name
+#   fargate_profile_name   = "fargate-profile"
+#   pod_execution_role_arn = aws_iam_role.kube_system.arn
+#   subnet_ids             = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
+#   selector {
+#     namespace = "kube-system"
+#   }
+#   selector {
+#     namespace = "grpc-tutorial"
+#   }
+#   depends_on = [
+#     aws_iam_role_policy_attachment.kube-system-AmazonEKSFargatePodExecutionRolePolicy,
+#     aws_eks_cluster.sample_eks_cluster,
+#   ]
+# }
+# resource "aws_iam_role" "kube_system" {
+#   name = "eks-fargate-profile-kube-system"
+#   assume_role_policy = jsonencode({
+#     Statement = [{
+#       Action = "sts:AssumeRole"
+#       Effect = "Allow"
+#       Principal = {
+#         Service = "eks-fargate-pods.amazonaws.com"
+#       }
+#     }]
+#     Version = "2012-10-17"
+#   })
+# }
+# resource "aws_iam_role_policy_attachment" "kube-system-AmazonEKSFargatePodExecutionRolePolicy" {
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
+#   role       = aws_iam_role.kube_system.name
+# }
+
+# resource "aws_eks_addon" "sample_eks_addon" {
+#   cluster_name                = aws_eks_cluster.sample_eks_cluster.name
+#   addon_name                  = "coredns"
+#   resolve_conflicts_on_create = "OVERWRITE"
+#   configuration_values = jsonencode({
+#     computeType = "fargate"
+#   })
+# }
 
 resource "aws_iam_policy" "AWSLoadBalancerControllerIAMPolicy" {
   name = "AWSLoadBalancerControllerIAMPolicy"
@@ -403,7 +450,7 @@ resource "helm_release" "aws-load-balancer-controller" {
 module "grpc_tutorial_namespace" {
   source     = "./modules/eks"
   yaml_body  = file("../manifests/namespace.yaml")
-  depends_on = [aws_eks_cluster.sample_eks_cluster]
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 module "rest_api_deployment" {
@@ -411,17 +458,17 @@ module "rest_api_deployment" {
   yaml_body = templatefile("../manifests/rest-api/deployment.yaml", {
     image_uri = "${aws_ecr_repository.rest_api.repository_url}:latest"
   })
-  depends_on = [aws_eks_cluster.sample_eks_cluster]
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 module "rest_api_service" {
   source     = "./modules/eks"
   yaml_body  = file("../manifests/rest-api/service.yaml")
-  depends_on = [aws_eks_cluster.sample_eks_cluster]
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 module "ingress" {
   source     = "./modules/eks"
   yaml_body  = file("../manifests/ingress.yaml")
-  depends_on = [aws_eks_cluster.sample_eks_cluster]
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
