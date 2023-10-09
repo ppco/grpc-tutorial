@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rest-api-service
+#  namespace: grpc-tutorial
 spec:
   ports:
   - port: 8888

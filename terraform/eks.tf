@@ -53,11 +53,11 @@ resource "aws_eks_node_group" "this" {
   node_role_arn = aws_iam_role.eks_cluster_node_role.arn
   subnet_ids = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
   scaling_config {
-    desired_size = 1
-    max_size = 2
-    min_size = 1
+    desired_size = 4
+    max_size = 8
+    min_size = 4
   }
-  instance_types = ["t3.nano"]
+  instance_types = ["t3.micro"]
   depends_on = [ aws_eks_cluster.sample_eks_cluster ]
 }
 
@@ -396,7 +396,7 @@ resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
     }]
     Version = "2012-10-17"
   })
-  depends_on = [aws_eks_cluster.sample_eks_cluster]
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 resource "aws_iam_role_policy_attachment" "AWSLoadBalancerControllerIAMPolicy_attach" {
@@ -404,20 +404,39 @@ resource "aws_iam_role_policy_attachment" "AWSLoadBalancerControllerIAMPolicy_at
   policy_arn = aws_iam_policy.AWSLoadBalancerControllerIAMPolicy.arn
 }
 
-resource "kubectl_manifest" "aws-load-balancer-controller_ServiceAccount" {
-  yaml_body  = <<YAML
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/name: aws-load-balancer-controller
-  name: aws-load-balancer-controller
-  namespace: kube-system
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
-YAML
-  depends_on = [aws_iam_role_policy_attachment.AWSLoadBalancerControllerIAMPolicy_attach]
+#https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+resource "aws_iam_openid_connect_provider" "eks_oidc" {
+  url = aws_eks_cluster.sample_eks_cluster.identity.0.oidc.0.issuer
+
+  client_id_list = [ "sts.amazonaws.com" ]
+
+  thumbprint_list = [ "9e99a48a9960b14926bb7f3b02e22da2b0ab7280" ]
+
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
+}
+
+# resource "kubectl_manifest" "aws-load-balancer-controller_ServiceAccount" {
+#   yaml_body  = <<YAML
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   labels:
+#     app.kubernetes.io/component: controller
+#     app.kubernetes.io/name: aws-load-balancer-controller
+#   name: aws-load-balancer-controller
+#   namespace: kube-system
+#   annotations:
+#     eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
+# YAML
+#   depends_on = [aws_iam_role_policy_attachment.AWSLoadBalancerControllerIAMPolicy_attach, aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
+# }
+
+module "aws-load-balancer-controller_ServiceAccount"{
+    source = "./modules/eks"
+  yaml_body = templatefile("../manifests/service_account.yaml", {
+    account_id = "${data.aws_caller_identity.current.account_id}"
+  })
+  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
@@ -445,13 +464,14 @@ resource "helm_release" "aws-load-balancer-controller" {
     name  = "vpcId"
     value = aws_vpc.sample_vpc.id
   }
-}
-
-module "grpc_tutorial_namespace" {
-  source     = "./modules/eks"
-  yaml_body  = file("../manifests/namespace.yaml")
   depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
+
+# module "grpc_tutorial_namespace" {
+#   source     = "./modules/eks"
+#   yaml_body  = file("../manifests/namespace.yaml")
+#   depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
+# }
 
 module "rest_api_deployment" {
   source = "./modules/eks"
@@ -469,6 +489,8 @@ module "rest_api_service" {
 
 module "ingress" {
   source     = "./modules/eks"
-  yaml_body  = file("../manifests/ingress.yaml")
+  yaml_body = templatefile("../manifests/ingress.yaml", {
+    subnet_ids = "${aws_subnet.sample_public_subnet1.id}, ${aws_subnet.sample_public_subnet2.id}"
+  })
   depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }

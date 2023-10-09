@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rest-api
-  namespace: grpc-tutorial
+#  namespace: grpc-tutorial
 spec:
   replicas: 1
   selector:

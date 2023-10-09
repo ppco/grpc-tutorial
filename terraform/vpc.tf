@@ -73,10 +73,10 @@ resource "aws_route_table" "sample_public_route_table" {
   }
 
 }
-# resource "aws_main_route_table_association" "sample_main_route_table" {
-#   vpc_id         = aws_vpc.sample_vpc.id
-#   route_table_id = aws_route_table.sample_public_route_table.id
-# }
+resource "aws_main_route_table_association" "sample_main_route_table" {
+  vpc_id         = aws_vpc.sample_vpc.id
+  route_table_id = aws_route_table.sample_public_route_table.id
+}
 resource "aws_route_table_association" "sample_public_route_table_ass1" {
   subnet_id      = aws_subnet.sample_public_subnet1.id
   route_table_id = aws_route_table.sample_public_route_table.id

@@ -8,6 +8,10 @@ import (
 )
 
 func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok")
+	})
+
 	http.HandleFunc("/rest", func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().Format("2006-01-02 15:04:05")
 		log.Println("access!!")

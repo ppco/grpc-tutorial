@@ -4,11 +4,14 @@ metadata:
   name: ingress
   annotations:
     kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/backend-protocol-version: GRPC
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    #alb.ingress.kubernetes.io/backend-protocol-version: [HTTP1, GRPC]
+    alb.ingress.kubernetes.io/backend-protocol-version: HTTP1
+    #alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/load-balancer-attributes: "routing.http2.enabled=true"
+    alb.ingress.kubernetes.io/subnets: ${subnet_ids} #https://zenn.dev/tayusa/scraps/c3c3de4cf8f4c0
     #alb.ingress.kubernetes.io/certificate-arn: {{ .Values.acmArn }}
 spec:
   rules:
