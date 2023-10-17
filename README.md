@@ -1,6 +1,5 @@
 # grpc-tutorial
 
-
 ## create
 ・create resource
 ```sh
