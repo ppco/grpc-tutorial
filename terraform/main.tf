@@ -5,7 +5,7 @@ provider "aws" {
 }
 
 provider "kubectl" {
-  config_path = "~/.kube/config"
+  config_path      = "~/.kube/config"
   load_config_file = true
 }
 provider "helm" {
