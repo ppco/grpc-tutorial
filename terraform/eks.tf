@@ -50,15 +50,15 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.sample_eks_cluster.name
   node_group_name = "sample_node_group"
-  node_role_arn = aws_iam_role.eks_cluster_node_role.arn
-  subnet_ids = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
+  node_role_arn   = aws_iam_role.eks_cluster_node_role.arn
+  subnet_ids      = [aws_subnet.sample_private_subnet1.id, aws_subnet.sample_private_subnet2.id]
   scaling_config {
     desired_size = 4
-    max_size = 8
-    min_size = 4
+    max_size     = 8
+    min_size     = 4
   }
   instance_types = ["t3.micro"]
-  depends_on = [ aws_eks_cluster.sample_eks_cluster ]
+  depends_on     = [aws_eks_cluster.sample_eks_cluster]
 }
 
 resource "aws_iam_role" "eks_cluster_node_role" {
@@ -75,18 +75,18 @@ resource "aws_iam_role" "eks_cluster_node_role" {
   })
 }
 resource "aws_iam_role_policy_attachment" "AmazonEKSWorkerNodePolicy" {
-    policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-    role       = aws_iam_role.eks_cluster_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.eks_cluster_node_role.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
-    policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-    role       = aws_iam_role.eks_cluster_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_cluster_node_role.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
-    policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-    role       = aws_iam_role.eks_cluster_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_cluster_node_role.name
 }
 
 # データプレーンにFargateを利用するための設定
@@ -408,9 +408,9 @@ resource "aws_iam_role_policy_attachment" "AWSLoadBalancerControllerIAMPolicy_at
 resource "aws_iam_openid_connect_provider" "eks_oidc" {
   url = aws_eks_cluster.sample_eks_cluster.identity.0.oidc.0.issuer
 
-  client_id_list = [ "sts.amazonaws.com" ]
+  client_id_list = ["sts.amazonaws.com"]
 
-  thumbprint_list = [ "9e99a48a9960b14926bb7f3b02e22da2b0ab7280" ]
+  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
 
   depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
@@ -431,8 +431,8 @@ resource "aws_iam_openid_connect_provider" "eks_oidc" {
 #   depends_on = [aws_iam_role_policy_attachment.AWSLoadBalancerControllerIAMPolicy_attach, aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 # }
 
-module "aws-load-balancer-controller_ServiceAccount"{
-    source = "./modules/eks"
+module "aws-load-balancer-controller_ServiceAccount" {
+  source = "./modules/eks"
   yaml_body = templatefile("../manifests/service_account.yaml", {
     account_id = "${data.aws_caller_identity.current.account_id}"
   })
@@ -488,7 +488,7 @@ module "rest_api_service" {
 }
 
 module "ingress" {
-  source     = "./modules/eks"
+  source = "./modules/eks"
   yaml_body = templatefile("../manifests/ingress.yaml", {
     subnet_ids = "${aws_subnet.sample_public_subnet1.id}, ${aws_subnet.sample_public_subnet2.id}"
   })
