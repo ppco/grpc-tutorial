@@ -25,5 +25,7 @@ $ cd terraform
 $ terraform destroy
 ```
 
-・aws alb and security group
+・AWS(aws-load-balancer-controller)
+- alb
+- security group
 
