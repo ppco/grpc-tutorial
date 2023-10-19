@@ -28,4 +28,3 @@ $ terraform destroy
 ・AWS(aws-load-balancer-controller)
 - alb
 - security group
-
