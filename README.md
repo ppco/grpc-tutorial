@@ -6,31 +6,26 @@ Manage AWS EKS with terraform resources, build and remove with Makefile. See bel
 
 In addition, one REST API and one gRPC API are included under the src directory as samples.
 
+# set up
+Set the following environment variables in the `.env` file before creating and deleting resources
+```.env
+ACCOUNT_ID=
+AWS_PROFILE=
+```
+
 ## create
-・create resource
 ```sh
-$ cd terraform
-$ terraform apply
-```
-
-・update for kubeconfig
-```sh
-$ aws eks update-kubeconfig --name sample-cluster --region ap-northeast-1
-```
-
-・push ecr repository
-```sh
-$ make push-rest-api
-$ make push-grpc-api
+$ make eks-init
 ```
 
 ## destroy
-・destroy resoruce
 ```sh
-$ cd terraform
-$ terraform destroy
+$ make eks-destroy
 ```
 
-・AWS(aws-load-balancer-controller)
-- alb
-- security group
+Before executing the command, remove the following resources that are attached to k8s. Otherwise, you will not be able to delete the internet gateway and the subnet.
+- ALB
+- TargetGroup
+- SecurityGroup
+
+This operation will no longer be necessary as the manifest changes in the future.
