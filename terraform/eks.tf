@@ -396,7 +396,7 @@ resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
     }]
     Version = "2012-10-17"
   })
-  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
+  depends_on = [aws_eks_cluster.sample_eks_cluster]
 }
 
 resource "aws_iam_role_policy_attachment" "AWSLoadBalancerControllerIAMPolicy_attach" {
@@ -412,26 +412,11 @@ resource "aws_iam_openid_connect_provider" "eks_oidc" {
 
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
 
-  depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
+  depends_on = [aws_eks_cluster.sample_eks_cluster]
 }
 
-# resource "kubectl_manifest" "aws-load-balancer-controller_ServiceAccount" {
-#   yaml_body  = <<YAML
-# apiVersion: v1
-# kind: ServiceAccount
-# metadata:
-#   labels:
-#     app.kubernetes.io/component: controller
-#     app.kubernetes.io/name: aws-load-balancer-controller
-#   name: aws-load-balancer-controller
-#   namespace: kube-system
-#   annotations:
-#     eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
-# YAML
-#   depends_on = [aws_iam_role_policy_attachment.AWSLoadBalancerControllerIAMPolicy_attach, aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
-# }
-
 module "aws-load-balancer-controller_ServiceAccount" {
+  count  = var.update_kubeconfig
   source = "./modules/eks"
   yaml_body = templatefile("../manifests/service_account.yaml", {
     account_id = "${data.aws_caller_identity.current.account_id}"
@@ -440,6 +425,7 @@ module "aws-load-balancer-controller_ServiceAccount" {
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
+  count      = var.update_kubeconfig
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
@@ -474,6 +460,7 @@ resource "helm_release" "aws-load-balancer-controller" {
 # }
 
 module "rest_api_deployment" {
+  count  = var.update_kubeconfig
   source = "./modules/eks"
   yaml_body = templatefile("../manifests/rest-api/deployment.yaml", {
     image_uri = "${aws_ecr_repository.rest_api.repository_url}:latest"
@@ -482,12 +469,14 @@ module "rest_api_deployment" {
 }
 
 module "rest_api_service" {
+  count      = var.update_kubeconfig
   source     = "./modules/eks"
   yaml_body  = file("../manifests/rest-api/service.yaml")
   depends_on = [aws_eks_cluster.sample_eks_cluster, null_resource.kubectl]
 }
 
 module "ingress" {
+  count  = var.update_kubeconfig
   source = "./modules/eks"
   yaml_body = templatefile("../manifests/ingress.yaml", {
     subnet_ids = "${aws_subnet.sample_public_subnet1.id}, ${aws_subnet.sample_public_subnet2.id}"
