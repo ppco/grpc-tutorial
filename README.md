@@ -1,4 +1,10 @@
-# grpc-tutorial
+# personal-eks
+
+This repository is for personal learning purposes.
+Overview.
+Manage AWS EKS with terraform resources, build and remove with Makefile. See below for detailed commands.
+
+In addition, one REST API and one gRPC API are included under the src directory as samples.
 
 ## create
 ・create resource
